@@ -5,5 +5,5 @@ __pycache__/
 .idea/
 *.log
 *.onnx
-static/
+#static/
 models/

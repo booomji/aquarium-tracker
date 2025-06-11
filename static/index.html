@@ -1,67 +1,61 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Fish Follows Face</title>
-  <style>
-    body { margin: 0; overflow: hidden; background: #001f3f; }
-    canvas { display: block; }
-  </style>
-</head>
-<body>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+<script>
+  window.onload = () => {
+    const app = new PIXI.Application({ background: '#001f3f', resizeTo: window });
+    document.body.appendChild(app.view);
 
+    const NUM_FISH = 10;
+    const fishArray = [];
 
-  <script>
-    window.onload = () => {
-      const app = new PIXI.Application({ background: '#001f3f', resizeTo: window });
-      document.body.appendChild(app.view);
-
-      // Create the circle fish
+    // Create multiple fish
+    for (let i = 0; i < NUM_FISH; i++) {
       const fish = new PIXI.Graphics();
       fish.beginFill(0x00aaff);
-      fish.drawCircle(0, 0, 25);
+      fish.drawCircle(0, 0, 20);
       fish.endFill();
-      fish.x = app.renderer.width / 2;
-      fish.y = app.renderer.height / 2;
+      fish.x = Math.random() * app.renderer.width;
+      fish.y = Math.random() * app.renderer.height;
+      fish.speedFactor = 0.02 + Math.random() * 0.05; // Different easing speed
+      fish.offset = {
+        x: (Math.random() - 0.5) * 100,
+        y: (Math.random() - 0.5) * 100,
+      };
       app.stage.addChild(fish);
+      fishArray.push(fish);
+    }
 
-      let targetX = fish.x;
-      let targetY = fish.y;
+    // Face tracking target
+    let targetX = app.renderer.width / 2;
+    let targetY = app.renderer.height / 2;
+    let depth = 0.5;
 
-      async function getFacePosition() {
-        try {
-
-          const res = await fetch("http://localhost:5000/position");
-          const data = await res.json();
-          targetX = data.x * app.renderer.width;
-          targetY = data.y * app.renderer.height;
-
-          // Set scale based on depth: closer = bigger
-          const depth = 1 - data.depth; // Invert: closer = higher
-          const scale = 0.5 + depth * 1.5;
-          fish.scale.set(scale, scale);
-        } catch (err) {
-          console.warn("Error fetching face position:", err);
-  }
-          /*
-          const res = await fetch("http://localhost:5000/position");
-          const data = await res.json();
-          targetX = data.x * app.renderer.width;
-          targetY = data.y * app.renderer.height;
-        } catch (err) {
-          console.warn("Error fetching face position:", err);
-        }
-          */
+    async function getFacePosition() {
+      try {
+        const res = await fetch("http://localhost:5000/position");
+        const data = await res.json();
+        targetX = data.x * app.renderer.width;
+        targetY = data.y * app.renderer.height;
+        depth = 1 - data.depth;
+      } catch (err) {
+        console.warn("Error fetching face position:", err);
       }
+    }
 
-      setInterval(getFacePosition, 100);
+    // Fetch every 100ms
+    setInterval(getFacePosition, 100);
 
-      app.ticker.add(() => {
-        fish.x += (targetX - fish.x) * 0.1;
-        fish.y += (targetY - fish.y) * 0.1;
-      });
-    };
-  </script>
-</body>
-</html>
+    // Animate fish movement
+    app.ticker.add(() => {
+      for (const fish of fishArray) {
+        const tx = targetX + fish.offset.x;
+        const ty = targetY + fish.offset.y;
+
+        fish.x += (tx - fish.x) * fish.speedFactor;
+        fish.y += (ty - fish.y) * fish.speedFactor;
+
+        // Optional: scale based on depth with some variation
+        const scale = 0.3 + depth * 1.5;
+        fish.scale.set(scale, scale);
+      }
+    });
+  };
+</script>

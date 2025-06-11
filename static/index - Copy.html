@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>PixiJS Circle Test</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #001f3f; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+  <script>
+    // Basic PixiJS setup
+    const app = new PIXI.Application({
+      backgroundColor: 0x001f3f,
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
+    document.body.appendChild(app.view);
+
+    // Create a simple circle
+    const circle = new PIXI.Graphics();
+    circle.beginFill(0x00aaff);
+    circle.drawCircle(0, 0, 50); // radius 50
+    circle.endFill();
+
+    // Position the circle in the center of the screen
+    circle.x = app.renderer.width / 2;
+    circle.y = app.renderer.height / 2;
+
+    app.stage.addChild(circle);
+  </script>
+</body>
+</html>
