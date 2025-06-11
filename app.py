@@ -14,8 +14,8 @@ CORS(app)
 
 # === Load MiDaS ONNX model ===
 model_path = "models/midas_v21_small_256.onnx"
-session = ort.InferenceSession(model_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
-#session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])#old cpu execution provider
+#session = ort.InferenceSession(model_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+session = ort.InferenceSession(model_path, providers=["CPUExecutionProvider"])#old cpu execution provider
 
 input_name = session.get_inputs()[0].name
 print("[INFO] Loaded MiDaS model using ONNX Runtime.")
