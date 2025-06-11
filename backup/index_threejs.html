@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Fish Tracker</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script>
+    // --- Constants ---
+    const LERP_FACTOR = 0.1; // Speed of the fish's movement smoothing
+    const FACE_POS_SCALE_X = 4; // How much to scale the X coordinate from face tracking
+    const FACE_POS_SCALE_Y = 3; // How much to scale the Y coordinate from face tracking
+    const FETCH_INTERVAL_MS = 100; // How often to fetch face position
+
+    let scene = new THREE.Scene();
+    let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    let renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Fish (sphere)
+    let geometry = new THREE.SphereGeometry(0.2, 32, 32);
+    let material = new THREE.MeshStandardMaterial({ color: 0x00aaff });
+    let fish = new THREE.Mesh(geometry, material);
+    scene.add(fish);
+
+    // Light
+    let light = new THREE.PointLight(0xffffff, 1, 100);
+    light.position.set(10, 10, 10);
+    scene.add(light);
+
+    camera.position.z = 2;
+
+    let targetX = fish.position.x; // Initialize target to current fish position
+    let targetY = fish.position.y; // Initialize target to current fish position
+
+    async function getFacePos() {
+      try {
+        const res = await fetch("http://localhost:5000/position");
+        if (!res.ok) {
+          console.warn(`Failed to fetch position: ${res.status} ${res.statusText}`);
+          return null;
+        }
+        const data = await res.json();
+        // Basic validation for expected data structure
+        if (typeof data.x !== 'number' || typeof data.y !== 'number') {
+          console.warn("Fetched position data is not in the expected format:", data);
+          return null;
+        }
+        return data;
+      } catch (e) {
+        console.warn("Failed to fetch position:", e);
+        return null;
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Smoothly interpolate fish position towards the target
+      fish.position.x += (targetX - fish.position.x) * LERP_FACTOR;
+      fish.position.y += (targetY - fish.position.y) * LERP_FACTOR;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    setInterval(async () => {
+      const faceData = await getFacePos();
+      if (faceData && faceData.x >= 0 && faceData.y >= 0) { // Ensure valid and non-negative coordinates
+        // Update the target for the fish; lerp in animate() will handle the smooth movement
+        targetX = (faceData.x - 0.5) * FACE_POS_SCALE_X;
+        targetY = -(faceData.y - 0.5) * FACE_POS_SCALE_Y; // Y is often inverted
+      }
+    }, FETCH_INTERVAL_MS);
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

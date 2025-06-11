@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>PixiJS Aquarium</title>
+  <style>
+    body { margin: 0; overflow: hidden; } /* Background color handled by Pixi app */
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<script src="https://pixijs.download/release/pixi.min.js"></script>
+<script>
+  const app = new PIXI.Application({ background: '#001f3f', resizeTo: window });
+  document.body.appendChild(app.view); // app.view is the canvas element
+
+  // --- Constants ---
+  const LERP_FACTOR = 0.08; // Smoothing factor for fish movement (0.0 to 1.0)
+  const FETCH_INTERVAL_MS = 100; // How often to fetch face position
+  const FISH_RADIUS = 20;
+  const FISH_COLOR = 0x00aaff;
+
+  // Fish sprite (circle)
+  const fish = new PIXI.Graphics();
+  fish.beginFill(FISH_COLOR);
+  fish.drawCircle(0, 0, FISH_RADIUS); // Draw circle centered at its local 0,0
+  fish.endFill();
+  app.stage.addChild(fish);
+
+  // Initialize target and fish position to the center of the screen
+  let targetX = app.renderer.width / 2;
+  let targetY = app.renderer.height / 2;
+  fish.x = targetX;
+  fish.y = targetY;
+
+  async function getFacePos() {
+    try {
+      const res = await fetch("http://localhost:5000/position");
+      if (!res.ok) {
+        console.warn(`Failed to fetch position: ${res.status} ${res.statusText}`);
+        return; // Don't update target if fetch was not successful
+      }
+      const data = await res.json();
+
+      // Validate data before using it
+      if (typeof data.x === 'number' && typeof data.y === 'number') {
+        targetX = data.x * app.renderer.width;
+        targetY = data.y * app.renderer.height;
+      } else {
+        console.warn("Received invalid position data:", data);
+      }
+    } catch (e) {
+      console.warn("Error fetching or parsing position data:", e);
+    }
+  }
+
+  setInterval(getFacePos, FETCH_INTERVAL_MS);
+
+  app.ticker.add(() => {
+    // Smooth follow
+    fish.x += (targetX - fish.x) * LERP_FACTOR;
+    fish.y += (targetY - fish.y) * LERP_FACTOR;
+  });
+</script>
+</body>
+</html>
