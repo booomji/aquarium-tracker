@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Fish Follows Face</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #001f3f; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+
+
+  <script>
+    window.onload = () => {
+      const app = new PIXI.Application({ background: '#001f3f', resizeTo: window });
+      document.body.appendChild(app.view);
+
+      // Create the circle fish
+      const fish = new PIXI.Graphics();
+      fish.beginFill(0x00aaff);
+      fish.drawCircle(0, 0, 25);
+      fish.endFill();
+      fish.x = app.renderer.width / 2;
+      fish.y = app.renderer.height / 2;
+      app.stage.addChild(fish);
+
+      let targetX = fish.x;
+      let targetY = fish.y;
+
+      async function getFacePosition() {
+        try {
+
+          const res = await fetch("http://localhost:5000/position");
+          const data = await res.json();
+          targetX = data.x * app.renderer.width;
+          targetY = data.y * app.renderer.height;
+
+          // Set scale based on depth: closer = bigger
+          const depth = 1 - data.depth; // Invert: closer = higher
+          const scale = 0.5 + depth * 1.5;
+          fish.scale.set(scale, scale);
+        } catch (err) {
+          console.warn("Error fetching face position:", err);
+  }
+          /*
+          const res = await fetch("http://localhost:5000/position");
+          const data = await res.json();
+          targetX = data.x * app.renderer.width;
+          targetY = data.y * app.renderer.height;
+        } catch (err) {
+          console.warn("Error fetching face position:", err);
+        }
+          */
+      }
+
+      setInterval(getFacePosition, 100);
+
+      app.ticker.add(() => {
+        fish.x += (targetX - fish.x) * 0.1;
+        fish.y += (targetY - fish.y) * 0.1;
+      });
+    };
+  </script>
+</body>
+</html>
